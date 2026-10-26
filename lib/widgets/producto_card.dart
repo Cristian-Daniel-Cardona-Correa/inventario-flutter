@@ -44,7 +44,7 @@ class ProductoCard extends StatelessWidget {
                 child: Container(
                   width: 58,
                   height: 58,
-                  color: const Color(0xFF1565C0).withOpacity(0.08),
+                  color: const Color(0xFF1565C0).withValues(alpha: 0.08),
                   child: imageUrl != null && imageUrl.isNotEmpty
                       ? Image.network(
                           imageUrl,

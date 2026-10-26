@@ -75,7 +75,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
             Container(
               padding: const EdgeInsets.all(6),
               decoration: BoxDecoration(
-                color: Colors.white.withOpacity(0.2),
+                color: Colors.white.withValues(alpha: 0.2),
                 borderRadius: BorderRadius.circular(8),
               ),
               child: const Icon(Icons.storefront, color: Colors.white, size: 22),
@@ -202,7 +202,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
               borderRadius: BorderRadius.circular(16),
               boxShadow: [
                 BoxShadow(
-                  color: const Color(0xFF1565C0).withOpacity(0.3),
+                  color: const Color(0xFF1565C0).withValues(alpha: 0.3),
                   blurRadius: 10,
                   offset: const Offset(0, 4),
                 ),
@@ -226,7 +226,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                       Text(
                         'Supervisa en tiempo real el estado de tus productos, stock y valor financiero acumulado.',
                         style: TextStyle(
-                          color: Colors.white.withOpacity(0.9),
+                          color: Colors.white.withValues(alpha: 0.9),
                           fontSize: 13,
                         ),
                       ),
@@ -298,12 +298,12 @@ class _DashboardScreenState extends State<DashboardScreen> {
               color: Colors.white,
               borderRadius: BorderRadius.circular(16),
               border: Border.all(
-                color: const Color(0xFF2E7D32).withOpacity(0.25),
+                color: const Color(0xFF2E7D32).withValues(alpha: 0.25),
                 width: 1.2,
               ),
               boxShadow: [
                 BoxShadow(
-                  color: const Color(0xFF2E7D32).withOpacity(0.08),
+                  color: const Color(0xFF2E7D32).withValues(alpha: 0.08),
                   blurRadius: 10,
                   offset: const Offset(0, 4),
                 ),
@@ -314,7 +314,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                 Container(
                   padding: const EdgeInsets.all(12),
                   decoration: BoxDecoration(
-                    color: const Color(0xFF2E7D32).withOpacity(0.12),
+                    color: const Color(0xFF2E7D32).withValues(alpha: 0.12),
                     shape: BoxShape.circle,
                   ),
                   child: const Icon(
@@ -453,7 +453,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                         child: Container(
                           width: 44,
                           height: 44,
-                          color: const Color(0xFF1565C0).withOpacity(0.08),
+                          color: const Color(0xFF1565C0).withValues(alpha: 0.08),
                           child: () {
                             final img = p.resolvedImageUrl(ApiClient.instance.client.options.baseUrl);
                             if (img != null && img.isNotEmpty) {

@@ -240,7 +240,7 @@ class _ProductoDetailScreenState extends State<ProductoDetailScreen> {
                         width: 54,
                         height: 54,
                         decoration: BoxDecoration(
-                          color: const Color(0xFF1565C0).withOpacity(0.12),
+                          color: const Color(0xFF1565C0).withValues(alpha: 0.12),
                           borderRadius: BorderRadius.circular(12),
                         ),
                         child: Center(
@@ -398,7 +398,7 @@ class _ProductoDetailScreenState extends State<ProductoDetailScreen> {
         Container(
           padding: const EdgeInsets.all(8),
           decoration: BoxDecoration(
-            color: color.withOpacity(0.1),
+            color: color.withValues(alpha: 0.1),
             borderRadius: BorderRadius.circular(8),
           ),
           child: Icon(icon, size: 20, color: color),
