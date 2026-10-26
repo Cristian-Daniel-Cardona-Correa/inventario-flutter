@@ -1,4 +1,5 @@
 import 'package:dio/dio.dart';
+import 'package:image_picker/image_picker.dart';
 import '../models/producto.dart';
 import 'api_client.dart';
 
@@ -19,6 +20,8 @@ class ApiException implements Exception {
 
 class ProductoService {
   final Dio _dio = ApiClient.instance.client;
+
+  String get baseUrl => _dio.options.baseUrl;
 
   Future<List<Producto>> listarTodos() async {
     try {
@@ -74,6 +77,38 @@ class ProductoService {
       throw _handleDioError(e);
     } catch (e) {
       throw ApiException(message: 'Error inesperado al eliminar producto: $e');
+    }
+  }
+
+  Future<String> subirImagen(XFile file) async {
+    try {
+      final bytes = await file.readAsBytes();
+      final formData = FormData.fromMap({
+        'file': MultipartFile.fromBytes(
+          bytes,
+          filename: file.name.isNotEmpty ? file.name : 'upload.jpg',
+        ),
+      });
+
+      final response =
+          await _dio.post('/productos/upload-imagen', data: formData);
+
+      if (response.data is Map && response.data['url'] != null) {
+        final String relativeUrl = response.data['url'] as String;
+        // Si el baseUrl es http://10.0.2.2:8080/api, el host es http://10.0.2.2:8080
+        final uri = Uri.tryParse(baseUrl);
+        if (uri != null) {
+          final hostPart = '${uri.scheme}://${uri.host}:${uri.port}';
+          return '$hostPart$relativeUrl';
+        }
+        return relativeUrl;
+      }
+      throw ApiException(
+          message: 'El servidor no retornó la URL de la imagen');
+    } on DioException catch (e) {
+      throw _handleDioError(e);
+    } catch (e) {
+      throw ApiException(message: 'Error al subir imagen al servidor: $e');
     }
   }
 

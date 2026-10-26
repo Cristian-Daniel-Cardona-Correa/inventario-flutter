@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../models/producto.dart';
+import '../services/api_client.dart';
 
 class ProductoCard extends StatelessWidget {
   final Producto producto;
@@ -19,6 +20,8 @@ class ProductoCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final bool hasStock = producto.cantidad > 0;
     final bool lowStock = producto.cantidad > 0 && producto.cantidad <= 5;
+    final String? imageUrl =
+        producto.resolvedImageUrl(ApiClient.instance.client.options.baseUrl);
 
     return Card(
       margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
@@ -31,31 +34,43 @@ class ProductoCard extends StatelessWidget {
         onTap: onTap,
         borderRadius: BorderRadius.circular(12),
         child: Padding(
-          padding: const EdgeInsets.all(14),
+          padding: const EdgeInsets.all(12),
           child: Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
+            crossAxisAlignment: CrossAxisAlignment.center,
             children: [
-              Container(
-                width: 48,
-                height: 48,
-                decoration: BoxDecoration(
-                  color: const Color(0xFF1565C0).withOpacity(0.1),
-                  borderRadius: BorderRadius.circular(10),
-                ),
-                child: Center(
-                  child: Text(
-                    producto.nombre.isNotEmpty
-                        ? producto.nombre[0].toUpperCase()
-                        : 'P',
-                    style: const TextStyle(
-                      color: Color(0xFF1565C0),
-                      fontSize: 20,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
+              // Contenedor de Imagen o Avatar con inicial
+              ClipRRect(
+                borderRadius: BorderRadius.circular(10),
+                child: Container(
+                  width: 58,
+                  height: 58,
+                  color: const Color(0xFF1565C0).withOpacity(0.08),
+                  child: imageUrl != null && imageUrl.isNotEmpty
+                      ? Image.network(
+                          imageUrl,
+                          fit: BoxFit.cover,
+                          loadingBuilder: (context, child, progress) {
+                            if (progress == null) return child;
+                            return const Center(
+                              child: SizedBox(
+                                width: 18,
+                                height: 18,
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 2,
+                                ),
+                              ),
+                            );
+                          },
+                          errorBuilder: (context, error, stackTrace) {
+                            return _buildFallbackAvatar(context);
+                          },
+                        )
+                      : _buildFallbackAvatar(context),
                 ),
               ),
               const SizedBox(width: 12),
+
+              // Información del Producto
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -91,33 +106,37 @@ class ProductoCard extends StatelessWidget {
                           ),
                         ),
                         const SizedBox(width: 6),
-                        Container(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 6,
-                            vertical: 2,
-                          ),
-                          decoration: BoxDecoration(
-                            color: Colors.blue.shade50,
-                            borderRadius: BorderRadius.circular(4),
-                          ),
-                          child: Text(
-                            producto.categoria,
-                            style: TextStyle(
-                              fontSize: 11,
-                              color: Colors.blue.shade700,
-                              fontWeight: FontWeight.w500,
+                        Flexible(
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 6,
+                              vertical: 2,
+                            ),
+                            decoration: BoxDecoration(
+                              color: Colors.blue.shade50,
+                              borderRadius: BorderRadius.circular(4),
+                            ),
+                            child: Text(
+                              producto.categoria,
+                              style: TextStyle(
+                                fontSize: 11,
+                                color: Colors.blue.shade700,
+                                fontWeight: FontWeight.w500,
+                              ),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
                             ),
                           ),
                         ),
                       ],
                     ),
-                    const SizedBox(height: 8),
+                    const SizedBox(height: 6),
                     Row(
                       children: [
                         Text(
                           '\$${producto.precio.toStringAsFixed(2)}',
                           style: const TextStyle(
-                            fontSize: 15,
+                            fontSize: 14,
                             fontWeight: FontWeight.bold,
                             color: Color(0xFF2E7D32),
                           ),
@@ -126,7 +145,7 @@ class ProductoCard extends StatelessWidget {
                         Container(
                           padding: const EdgeInsets.symmetric(
                             horizontal: 8,
-                            vertical: 3,
+                            vertical: 2,
                           ),
                           decoration: BoxDecoration(
                             color: !hasStock
@@ -134,7 +153,7 @@ class ProductoCard extends StatelessWidget {
                                 : lowStock
                                     ? Colors.amber.shade50
                                     : Colors.green.shade50,
-                            borderRadius: BorderRadius.circular(12),
+                            borderRadius: BorderRadius.circular(10),
                           ),
                           child: Row(
                             mainAxisSize: MainAxisSize.min,
@@ -145,7 +164,7 @@ class ProductoCard extends StatelessWidget {
                                     : lowStock
                                         ? Icons.warning_amber
                                         : Icons.check_circle,
-                                size: 12,
+                                size: 11,
                                 color: !hasStock
                                     ? Colors.red
                                     : lowStock
@@ -173,6 +192,8 @@ class ProductoCard extends StatelessWidget {
                   ],
                 ),
               ),
+
+              // Menú de opciones
               PopupMenuButton<String>(
                 icon: const Icon(Icons.more_vert, size: 20),
                 onSelected: (value) {
@@ -207,6 +228,19 @@ class ProductoCard extends StatelessWidget {
               ),
             ],
           ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildFallbackAvatar(BuildContext context) {
+    return Center(
+      child: Text(
+        producto.nombre.isNotEmpty ? producto.nombre[0].toUpperCase() : 'P',
+        style: const TextStyle(
+          color: Color(0xFF1565C0),
+          fontSize: 22,
+          fontWeight: FontWeight.bold,
         ),
       ),
     );

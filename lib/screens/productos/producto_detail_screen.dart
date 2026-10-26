@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import '../../models/producto.dart';
+import '../../services/api_client.dart';
 import '../../services/producto_service.dart';
 
 class ProductoDetailScreen extends StatefulWidget {
@@ -168,13 +169,60 @@ class _ProductoDetailScreenState extends State<ProductoDetailScreen> {
 
     final p = _producto!;
     final bool hasStock = p.cantidad > 0;
+    final String? imageUrl =
+        p.resolvedImageUrl(ApiClient.instance.client.options.baseUrl);
 
     return SingleChildScrollView(
       padding: const EdgeInsets.all(16),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Tarjeta Principal
+          // Imagen destacada del producto
+          if (imageUrl != null && imageUrl.isNotEmpty) ...[
+            ClipRRect(
+              borderRadius: BorderRadius.circular(16),
+              child: Container(
+                width: double.infinity,
+                height: 220,
+                decoration: BoxDecoration(
+                  color: Colors.grey.shade100,
+                  border: Border.all(color: Colors.grey.shade200),
+                ),
+                child: Image.network(
+                  imageUrl,
+                  fit: BoxFit.cover,
+                  loadingBuilder: (context, child, progress) {
+                    if (progress == null) return child;
+                    return const Center(
+                      child: CircularProgressIndicator(strokeWidth: 2.5),
+                    );
+                  },
+                  errorBuilder: (context, error, stackTrace) {
+                    return Center(
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Icon(Icons.broken_image,
+                              size: 48, color: Colors.grey.shade400),
+                          const SizedBox(height: 8),
+                          Text(
+                            'No se pudo cargar la imagen',
+                            style: TextStyle(
+                              color: Colors.grey.shade600,
+                              fontSize: 12,
+                            ),
+                          ),
+                        ],
+                      ),
+                    );
+                  },
+                ),
+              ),
+            ),
+            const SizedBox(height: 16),
+          ],
+
+          // Tarjeta Principal de Información
           Card(
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(16),
@@ -189,8 +237,8 @@ class _ProductoDetailScreenState extends State<ProductoDetailScreen> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Container(
-                        width: 56,
-                        height: 56,
+                        width: 54,
+                        height: 54,
                         decoration: BoxDecoration(
                           color: const Color(0xFF1565C0).withOpacity(0.12),
                           borderRadius: BorderRadius.circular(12),
@@ -200,13 +248,13 @@ class _ProductoDetailScreenState extends State<ProductoDetailScreen> {
                             p.nombre.isNotEmpty ? p.nombre[0].toUpperCase() : 'P',
                             style: const TextStyle(
                               color: Color(0xFF1565C0),
-                              fontSize: 26,
+                              fontSize: 24,
                               fontWeight: FontWeight.bold,
                             ),
                           ),
                         ),
                       ),
-                      const SizedBox(width: 16),
+                      const SizedBox(width: 14),
                       Expanded(
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
@@ -214,7 +262,7 @@ class _ProductoDetailScreenState extends State<ProductoDetailScreen> {
                             Text(
                               p.nombre,
                               style: const TextStyle(
-                                fontSize: 20,
+                                fontSize: 19,
                                 fontWeight: FontWeight.bold,
                               ),
                             ),
@@ -282,7 +330,7 @@ class _ProductoDetailScreenState extends State<ProductoDetailScreen> {
                       style: TextStyle(
                         fontSize: 14,
                         fontWeight: FontWeight.bold,
-                        color: Colors.black89,
+                        color: Colors.black87,
                       ),
                     ),
                     const SizedBox(height: 6),

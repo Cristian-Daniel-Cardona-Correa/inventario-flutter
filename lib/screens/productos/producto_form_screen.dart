@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
-import '../../models/producto.dart';
+import 'package:image_picker/image_picker.dart';
+import '../../services/api_client.dart';
 import '../../services/producto_service.dart';
 
 class ProductoFormScreen extends StatefulWidget {
@@ -15,6 +16,7 @@ class ProductoFormScreen extends StatefulWidget {
 class _ProductoFormScreenState extends State<ProductoFormScreen> {
   final _formKey = GlobalKey<FormState>();
   final ProductoService _productoService = ProductoService();
+  final ImagePicker _picker = ImagePicker();
 
   final _nombreController = TextEditingController();
   final _codigoController = TextEditingController();
@@ -22,10 +24,12 @@ class _ProductoFormScreenState extends State<ProductoFormScreen> {
   final _precioController = TextEditingController();
   final _cantidadController = TextEditingController();
   final _categoriaController = TextEditingController();
+  final _imagenUrlController = TextEditingController();
 
   bool _isEditing = false;
   bool _isLoadingInitial = false;
   bool _isSubmitting = false;
+  bool _isUploadingImage = false;
   String? _serverErrorMessage;
 
   // Categorías sugeridas
@@ -45,6 +49,9 @@ class _ProductoFormScreenState extends State<ProductoFormScreen> {
   void initState() {
     super.initState();
     _isEditing = widget.productoId != null;
+    _imagenUrlController.addListener(() {
+      setState(() {});
+    });
     if (_isEditing) {
       _cargarProductoExistente();
     }
@@ -58,6 +65,7 @@ class _ProductoFormScreenState extends State<ProductoFormScreen> {
     _precioController.dispose();
     _cantidadController.dispose();
     _categoriaController.dispose();
+    _imagenUrlController.dispose();
     super.dispose();
   }
 
@@ -76,6 +84,7 @@ class _ProductoFormScreenState extends State<ProductoFormScreen> {
           _precioController.text = producto.precio.toString();
           _cantidadController.text = producto.cantidad.toString();
           _categoriaController.text = producto.categoria;
+          _imagenUrlController.text = producto.imagenUrl ?? '';
           _isLoadingInitial = false;
         });
       }
@@ -89,8 +98,48 @@ class _ProductoFormScreenState extends State<ProductoFormScreen> {
     }
   }
 
+  Future<void> _seleccionarYSubirImagen(ImageSource source) async {
+    try {
+      final XFile? pickedFile = await _picker.pickImage(
+        source: source,
+        maxWidth: 1200,
+        maxHeight: 1200,
+        imageQuality: 85,
+      );
+
+      if (pickedFile == null) return;
+
+      setState(() {
+        _isUploadingImage = true;
+        _serverErrorMessage = null;
+      });
+
+      final String uploadedUrl = await _productoService.subirImagen(pickedFile);
+
+      if (mounted) {
+        setState(() {
+          _imagenUrlController.text = uploadedUrl;
+          _isUploadingImage = false;
+        });
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Imagen subida con éxito al servidor'),
+            backgroundColor: Colors.green,
+            duration: Duration(seconds: 2),
+          ),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() {
+          _isUploadingImage = false;
+          _serverErrorMessage = 'Error al subir la imagen: $e';
+        });
+      }
+    }
+  }
+
   Future<void> _guardar() async {
-    // Limpiar mensaje previo
     setState(() {
       _serverErrorMessage = null;
     });
@@ -105,6 +154,7 @@ class _ProductoFormScreenState extends State<ProductoFormScreen> {
     final double? precio = double.tryParse(_precioController.text.trim());
     final int? cantidad = int.tryParse(_cantidadController.text.trim());
     final String categoria = _categoriaController.text.trim();
+    final String imagenUrl = _imagenUrlController.text.trim();
 
     if (precio == null || precio <= 0) {
       setState(() {
@@ -115,7 +165,8 @@ class _ProductoFormScreenState extends State<ProductoFormScreen> {
 
     if (cantidad == null || cantidad < 0) {
       setState(() {
-        _serverErrorMessage = 'La cantidad debe ser un número entero mayor o igual a 0';
+        _serverErrorMessage =
+            'La cantidad debe ser un número entero mayor o igual a 0';
       });
       return;
     }
@@ -127,6 +178,7 @@ class _ProductoFormScreenState extends State<ProductoFormScreen> {
       'precio': precio,
       'cantidad': cantidad,
       'categoria': categoria,
+      'imagenUrl': imagenUrl.isEmpty ? null : imagenUrl,
     };
 
     setState(() {
@@ -164,8 +216,23 @@ class _ProductoFormScreenState extends State<ProductoFormScreen> {
     }
   }
 
+  String? _resolvePreviewUrl() {
+    final text = _imagenUrlController.text.trim();
+    if (text.isEmpty) return null;
+    if (text.startsWith('http://') || text.startsWith('https://')) {
+      return text;
+    }
+    final uri = Uri.tryParse(ApiClient.instance.client.options.baseUrl);
+    if (uri != null) {
+      return '${uri.scheme}://${uri.host}:${uri.port}$text';
+    }
+    return text;
+  }
+
   @override
   Widget build(BuildContext context) {
+    final previewUrl = _resolvePreviewUrl();
+
     return Scaffold(
       appBar: AppBar(
         title: Text(_isEditing ? 'Editar Producto' : 'Nuevo Producto'),
@@ -207,6 +274,200 @@ class _ProductoFormScreenState extends State<ProductoFormScreen> {
                       ),
                       const SizedBox(height: 16),
                     ],
+
+                    // SECCIÓN DE IMAGEN
+                    Card(
+                      elevation: 1,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                        side: BorderSide(color: Colors.grey.shade200),
+                      ),
+                      child: Padding(
+                        padding: const EdgeInsets.all(16),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Row(
+                              children: [
+                                const Icon(Icons.image,
+                                    color: Color(0xFF1565C0), size: 20),
+                                const SizedBox(width: 8),
+                                const Text(
+                                  'Imagen del Producto',
+                                  style: TextStyle(
+                                    fontSize: 15,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                                const Spacer(),
+                                if (previewUrl != null)
+                                  TextButton.icon(
+                                    onPressed: () {
+                                      _imagenUrlController.clear();
+                                    },
+                                    icon: const Icon(Icons.close,
+                                        size: 16, color: Colors.red),
+                                    label: const Text(
+                                      'Quitar',
+                                      style: TextStyle(
+                                        color: Colors.red,
+                                        fontSize: 12,
+                                      ),
+                                    ),
+                                  ),
+                              ],
+                            ),
+                            const SizedBox(height: 12),
+
+                            // Vista previa de imagen
+                            Center(
+                              child: Container(
+                                width: double.infinity,
+                                height: 160,
+                                decoration: BoxDecoration(
+                                  color: Colors.grey.shade100,
+                                  borderRadius: BorderRadius.circular(10),
+                                  border: Border.all(
+                                    color: Colors.grey.shade300,
+                                    style: BorderStyle.solid,
+                                  ),
+                                ),
+                                child: _isUploadingImage
+                                    ? const Column(
+                                        mainAxisAlignment:
+                                            MainAxisAlignment.center,
+                                        children: [
+                                          CircularProgressIndicator(),
+                                          SizedBox(height: 10),
+                                          Text(
+                                            'Subiendo imagen al servidor...',
+                                            style: TextStyle(
+                                              fontSize: 12,
+                                              color: Colors.grey,
+                                            ),
+                                          ),
+                                        ],
+                                      )
+                                    : previewUrl != null
+                                        ? ClipRRect(
+                                            borderRadius:
+                                                BorderRadius.circular(10),
+                                            child: Image.network(
+                                              previewUrl,
+                                              fit: BoxFit.cover,
+                                              loadingBuilder: (context, child,
+                                                  progress) {
+                                                if (progress == null) {
+                                                  return child;
+                                                }
+                                                return const Center(
+                                                  child:
+                                                      CircularProgressIndicator(),
+                                                );
+                                              },
+                                              errorBuilder:
+                                                  (context, error, stack) {
+                                                return const Center(
+                                                  child: Column(
+                                                    mainAxisAlignment:
+                                                        MainAxisAlignment
+                                                            .center,
+                                                    children: [
+                                                      Icon(Icons.broken_image,
+                                                          color: Colors.grey,
+                                                          size: 40),
+                                                      SizedBox(height: 6),
+                                                      Text(
+                                                        'URL de imagen no válida',
+                                                        style: TextStyle(
+                                                          color: Colors.grey,
+                                                          fontSize: 12,
+                                                        ),
+                                                      ),
+                                                    ],
+                                                  ),
+                                                );
+                                              },
+                                            ),
+                                          )
+                                        : Center(
+                                            child: Column(
+                                              mainAxisAlignment:
+                                                  MainAxisAlignment.center,
+                                              children: [
+                                                Icon(
+                                                  Icons.add_photo_alternate_outlined,
+                                                  size: 44,
+                                                  color: Colors.grey.shade400,
+                                                ),
+                                                const SizedBox(height: 6),
+                                                Text(
+                                                  'Sin imagen seleccionada',
+                                                  style: TextStyle(
+                                                    color: Colors.grey.shade500,
+                                                    fontSize: 13,
+                                                  ),
+                                                ),
+                                              ],
+                                            ),
+                                          ),
+                              ),
+                            ),
+                            const SizedBox(height: 12),
+
+                            // Botones para tomar foto o elegir de galería
+                            Row(
+                              children: [
+                                Expanded(
+                                  child: OutlinedButton.icon(
+                                    onPressed: _isUploadingImage
+                                        ? null
+                                        : () => _seleccionarYSubirImagen(
+                                            ImageSource.camera),
+                                    icon: const Icon(Icons.camera_alt, size: 18),
+                                    label: const Text('Tomar foto'),
+                                    style: OutlinedButton.styleFrom(
+                                      padding: const EdgeInsets.symmetric(
+                                          vertical: 10),
+                                    ),
+                                  ),
+                                ),
+                                const SizedBox(width: 8),
+                                Expanded(
+                                  child: OutlinedButton.icon(
+                                    onPressed: _isUploadingImage
+                                        ? null
+                                        : () => _seleccionarYSubirImagen(
+                                            ImageSource.gallery),
+                                    icon:
+                                        const Icon(Icons.photo_library, size: 18),
+                                    label: const Text('De galería'),
+                                    style: OutlinedButton.styleFrom(
+                                      padding: const EdgeInsets.symmetric(
+                                          vertical: 10),
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                            const SizedBox(height: 10),
+
+                            // Campo de texto para URL manual
+                            TextFormField(
+                              controller: _imagenUrlController,
+                              decoration: const InputDecoration(
+                                labelText: 'O ingresa una URL de imagen',
+                                hintText: 'https://ejemplo.com/imagen.jpg',
+                                prefixIcon: Icon(Icons.link),
+                                isDense: true,
+                              ),
+                              keyboardType: TextInputType.url,
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 16),
 
                     // Nombre
                     TextFormField(
@@ -333,7 +594,8 @@ class _ProductoFormScreenState extends State<ProductoFormScreen> {
                       maxLines: 3,
                       decoration: const InputDecoration(
                         labelText: 'Descripción (Opcional)',
-                        hintText: 'Detalles, especificaciones o notas del producto...',
+                        hintText:
+                            'Detalles, especificaciones o notas del producto...',
                         prefixIcon: Icon(Icons.description_outlined),
                         alignLabelWithHint: true,
                       ),
@@ -342,7 +604,9 @@ class _ProductoFormScreenState extends State<ProductoFormScreen> {
 
                     // Botón de guardar
                     ElevatedButton(
-                      onPressed: _isSubmitting ? null : _guardar,
+                      onPressed: _isSubmitting || _isUploadingImage
+                          ? null
+                          : _guardar,
                       style: ElevatedButton.styleFrom(
                         backgroundColor: const Color(0xFF1565C0),
                         foregroundColor: Colors.white,
