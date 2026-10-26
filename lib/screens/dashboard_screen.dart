@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import '../models/producto.dart';
+import '../services/api_client.dart';
 import '../services/producto_service.dart';
 import '../widgets/stat_card.dart';
 
@@ -447,14 +448,24 @@ class _DashboardScreenState extends State<DashboardScreen> {
                     ),
                     child: ListTile(
                       dense: true,
-                      leading: CircleAvatar(
-                        backgroundColor: const Color(0xFF1565C0).withOpacity(0.1),
-                        child: Text(
-                          p.nombre.isNotEmpty ? p.nombre[0].toUpperCase() : 'P',
-                          style: const TextStyle(
-                            color: Color(0xFF1565C0),
-                            fontWeight: FontWeight.bold,
-                          ),
+                      leading: ClipRRect(
+                        borderRadius: BorderRadius.circular(8),
+                        child: Container(
+                          width: 44,
+                          height: 44,
+                          color: const Color(0xFF1565C0).withOpacity(0.08),
+                          child: () {
+                            final img = p.resolvedImageUrl(ApiClient.instance.client.options.baseUrl);
+                            if (img != null && img.isNotEmpty) {
+                              return Image.network(
+                                img,
+                                fit: BoxFit.cover,
+                                errorBuilder: (context, error, stackTrace) =>
+                                    _buildProductInitial(p),
+                              );
+                            }
+                            return _buildProductInitial(p);
+                          }(),
                         ),
                       ),
                       title: Text(
@@ -478,6 +489,19 @@ class _DashboardScreenState extends State<DashboardScreen> {
                 ),
           ],
         ],
+      ),
+    );
+  }
+
+  Widget _buildProductInitial(Producto p) {
+    return Center(
+      child: Text(
+        p.nombre.isNotEmpty ? p.nombre[0].toUpperCase() : 'P',
+        style: const TextStyle(
+          color: Color(0xFF1565C0),
+          fontWeight: FontWeight.bold,
+          fontSize: 18,
+        ),
       ),
     );
   }
