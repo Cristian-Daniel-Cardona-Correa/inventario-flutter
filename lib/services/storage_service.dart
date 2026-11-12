@@ -8,7 +8,7 @@ class StorageService {
 
   // Almacenamiento Seguro (Hardware KeyStore en Android / Keychain en iOS)
   final FlutterSecureStorage _secureStorage = const FlutterSecureStorage(
-    aOptions: AndroidOptions(encryptedSharedPreferences: true),
+    aOptions: AndroidOptions(resetOnError: true),
   );
 
   static const String _tokenKey = 'jwt_access_token';
