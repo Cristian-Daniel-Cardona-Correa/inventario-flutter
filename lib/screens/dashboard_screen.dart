@@ -109,6 +109,11 @@ class _DashboardScreenState extends State<DashboardScreen> {
             tooltip: 'Actualizar datos',
             onPressed: _cargarDatos,
           ),
+          IconButton(
+            icon: const Icon(Icons.account_circle_outlined),
+            tooltip: 'Mi Sesión',
+            onPressed: () => context.go('/perfil'),
+          ),
         ],
       ),
       body: RefreshIndicator(
