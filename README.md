@@ -1,79 +1,97 @@
-# Frontend Móvil — Aplicación Flutter de Gestión de Inventario
+# Frontend Móvil — Aplicación Flutter con Autenticación JWT y Protección de Servicios
 
-Aplicación móvil desarrollada en **Flutter** para la administración integral de inventario de productos de un establecimiento comercial. Consume de forma reactiva y en tiempo real la API REST desarrollada en Spring Boot utilizando el cliente HTTP **Dio**.
+Aplicación móvil desarrollada en **Flutter** para la administración de inventario de productos de un establecimiento comercial. Consume de forma reactiva y en tiempo real la API REST desarrollada en Spring Boot utilizando el cliente HTTP **Dio**, protegida mediante **JSON Web Token (JWT)**, almacenamiento seguro y control de acceso declarativo con **go_router**.
 
 ---
 
-## 📱 Características de la Aplicación
+## 🔐 Nuevas Características de Autenticación y Seguridad
+
+- **Pantalla de Inicio de Sesión (`LoginScreen`)**:
+  - Formulario con validación visual reactiva de campos obligatorios.
+  - Conmutador para mostrar u ocultar la contraseña.
+  - Botones rápidos con credenciales de prueba precargadas (`admin`, `empleado`, `profesor`).
+  - Manejo detallado de errores HTTP 401 (credenciales incorrectas) y caídas de conexión.
+- **Protección de Rutas (AuthGuard con `go_router`)**:
+  - Restricción total de acceso: los usuarios sin autenticación no pueden ver el Dashboard ni las funciones CRUD; son redirigidos automáticamente al login.
+  - Si un usuario autenticado intenta acceder al login, es redirigido al Dashboard.
+  - Redirección reactiva ante expiración o invalidación del token.
+- **Almacenamiento Local Seguro**:
+  - `flutter_secure_storage`: Almacena el `access_token` JWT en hardware seguro (KeyStore en Android / Keychain en iOS).
+  - `shared_preferences`: Almacena información pública de la sesión (nombre, email, username, estado de conexión).
+- **Inyección Automática de Token JWT**:
+  - Interceptor de Dio (`QueuedInterceptorsWrapper`) que agrega la cabecera `Authorization: Bearer <token>` a todas las peticiones a endpoints protegidos.
+  - Detección de respuestas 401 Unauthorized para limpiar la sesión local y expulsar al login de inmediato.
+- **Pantalla de Información de Sesión (`PerfilScreen`)**:
+  - Nombre completo y correo del usuario autenticado.
+  - Rol de usuario (`ROLE_ADMIN` / `ROLE_USER`).
+  - Estado de autenticación ("Sesión Activa").
+  - Indicador seguro de existencia del token (ofuscado, sin exponer la clave completa).
+  - Botón de **Cerrar Sesión** con diálogo modal de confirmación.
+
+---
+
+## 📱 Funcionalidades del Inventario (CRUD Completo)
 
 - **Dashboard Principal**:
-  - Indicadores en tiempo real: Total de productos, Total de unidades en stock y **Valor económico total del inventario** ($\sum \text{precio} \times \text{cantidad}$).
-  - Actualización reactiva de métricas tras cada operación de inventario.
-  - Accesos directos a la gestión de productos y registro rápido.
-- **Gestión CRUD Completa**:
-  - **Listar**: Catálogo interactivo con nombre, código, categoría, precio y stock. Incluye buscador y filtro en tiempo real.
-  - **Consultar Detalle**: Ficha técnica completa de cada producto con cálculo de valor económico por lote.
-  - **Registrar (POST)**: Formulario con validación visual para almacenar nuevos productos.
-  - **Editar (PUT)**: Edición con precarga de datos existentes y validación de código único.
-  - **Eliminar (DELETE)**: Eliminación con cuadro de diálogo modal de confirmación.
-- **Navegación Fluida con go_router**:
-  - Navegación declarativa con barra inferior (`NavigationBar`) entre Dashboard y Catálogo.
-  - Rutas dinámicas para detalle (`/productos/:id`) y edición (`/productos/:id/editar`).
-- **Manejo de Estados y Errores**:
-  - Estados de carga con indicadores visuales (`CircularProgressIndicator`).
-  - Pantallas dedicadas para error de conexión con botón de reintento.
-  - Estado vacío amigable cuando no hay registros en la base de datos.
-  - Notificaciones flotantes (`SnackBar`) para confirmar operaciones o señalar fallos.
+  - Métricas en tiempo real: Total de Productos, Stock Total y **Valor Económico Total del Inventario** ($\sum \text{precio} \times \text{cantidad}$).
+  - Tarjetas de últimos productos agregados con fotografías en alta resolución.
+  - Accesos directos a catálogo y formulario.
+- **Gestión CRUD de Productos Protegida**:
+  - **Listar**: Catálogo interactivo con buscador y filtro en tiempo real.
+  - **Consultar Detalle**: Ficha técnica completa con cálculo de valor económico por lote.
+  - **Registrar (POST)**: Formulario con selector multimedia (cámara, galería o URL externa).
+  - **Editar (PUT)**: Precarga automática de datos existentes y vista previa de imagen.
+  - **Eliminar (DELETE)**: Cuadro de diálogo modal de confirmación (`AlertDialog`).
 
 ---
 
 ## 🛠️ Tecnologías y Librerías Utilizadas
 
-- **Flutter SDK**: 3.x / Dart 3.x
-- **Dio (^5.7.0)**: Cliente HTTP para peticiones RESTful, configuración de timeouts e interceptores.
-- **go_router (^14.0.0)**: Enrutamiento declarativo con soporte para `ShellRoute`.
-- **flutter_dotenv (^5.2.1)**: Gestión de variables de entorno mediante archivo `.env`.
-- **Material 3**: Componentes visuales modernos y paleta de colores coherente.
+- **Flutter SDK**: 3.44.x / Dart 3.12.x
+- **Dio (^5.7.0)**: Cliente HTTP con interceptores JWT y timeouts de 10s.
+- **go_router (^14.8.1)**: Enrutamiento declarativo y AuthGuard con `refreshListenable`.
+- **flutter_secure_storage (^11.2.0)**: Almacenamiento seguro del token JWT.
+- **shared_preferences (^2.5.6)**: Persistencia de datos de sesión.
+- **flutter_dotenv (^5.2.1)**: Variables de entorno (`.env`).
+- **image_picker (^1.2.4)**: Selección de fotos desde cámara y galería.
+- **Material 3**: Componentes visuales y paleta corporativa.
 
 ---
 
 ## 📁 Estructura del Proyecto
 
-El proyecto implementa una arquitectura limpia y modular con estricta separación de responsabilidades:
-
 ```text
 lib/
-├── main.dart                       # Inicialización de dotenv y runApp con MaterialApp.router
+├── main.dart                       # Inicialización de dotenv, auth e inicio de runApp
 ├── router/
-│   └── app_router.dart             # Configuración de go_router y barra de navegación ShellRoute
+│   └── app_router.dart             # AuthGuard declarativo y ShellRoute con 3 pestañas
 ├── models/
-│   └── producto.dart               # Modelo de datos Producto con serialización fromJson / toJson
+│   ├── producto.dart               # Modelo Producto con fromJson / toJson
+│   └── usuario.dart                # Modelo Usuario para sesión y perfil
 ├── services/
-│   ├── api_client.dart             # Cliente Singleton de Dio con BaseOptions e interceptores
-│   └── producto_service.dart       # Lógica de consumo de endpoints CRUD y mapeo de excepciones
+│   ├── api_client.dart             # Singleton Dio con interceptor Bearer JWT y control 401
+│   ├── auth_service.dart           # Lógica de login, registro, logout y estado reactivo
+│   ├── storage_service.dart        # Gestión con flutter_secure_storage y shared_preferences
+│   └── producto_service.dart       # Consumo de endpoints protegidos CRUD de productos
 ├── screens/
-│   ├── dashboard_screen.dart       # Pantalla principal con métricas financieras y accesos
+│   ├── auth/
+│   │   ├── login_screen.dart       # Formulario de inicio de sesión con chips de prueba
+│   │   └── perfil_screen.dart      # Vista de información de sesión y botón de cierre
+│   ├── dashboard_screen.dart       # Dashboard principal con métricas financieras
 │   └── productos/
-│       ├── productos_list_screen.dart   # Listado general con buscador y pull-to-refresh
-│       ├── producto_detail_screen.dart  # Detalle completo del producto
+│       ├── productos_list_screen.dart   # Catálogo con buscador en tiempo real
+│       ├── producto_detail_screen.dart  # Detalle completo con imagen
 │       └── producto_form_screen.dart    # Formulario unificado de creación y edición
 └── widgets/
     ├── stat_card.dart              # Tarjeta reusable para métricas del dashboard
-    └── producto_card.dart          # Tarjeta de producto para el catálogo con menú de acciones
+    └── producto_card.dart          # Tarjeta de producto con menú contextual
 ```
 
 ---
 
 ## ⚙️ Configuración e Instalación
 
-### 1. Prerrequisitos
-- Flutter SDK instalado (`flutter --version`).
-- Backend en Spring Boot corriendo en el puerto `8080`.
-- Emulador Android, simulador iOS, navegador web o dispositivo físico.
-
-### 2. Configuración de Variables de Entorno
-Crea o edita el archivo `.env` en la raíz del proyecto Flutter:
-
+### 1. Variables de Entorno (`.env`)
 ```bash
 # Para emulador Android (por defecto):
 API_BASE_URL=http://10.0.2.2:8080/api
@@ -81,35 +99,26 @@ API_BASE_URL=http://10.0.2.2:8080/api
 # Para navegador web o emulador iOS:
 # API_BASE_URL=http://localhost:8080/api
 
-# Para dispositivo físico Android/iOS (reemplazar con la IP local de tu PC):
-# API_BASE_URL=http://192.168.1.50:8080/api
+# Para dispositivo físico Android/iOS (IP de tu computador):
+# API_BASE_URL=http://192.168.1.X:8080/api
 ```
 
-### 3. Instalar dependencias
+### 2. Instalar dependencias
 ```bash
 flutter pub get
 ```
 
-### 4. Ejecutar la aplicación
+### 3. Ejecutar la aplicación
 ```bash
 flutter run
 ```
 
-O para ejecutar directamente en la web (si está habilitado):
-```bash
-flutter run -d chrome
-```
-
 ---
 
-## 🔌 Consumo de la API Backend
+## 🔑 Credenciales de Prueba para Login
 
-La clase `ProductoService` se comunica directamente con los siguientes endpoints implementados en Spring Boot:
-
-| Acción | Método HTTP | Endpoint | Descripción |
-| :--- | :--- | :--- | :--- |
-| **Listar** | `GET` | `/api/productos` | Obtiene la lista de todos los productos en JSON |
-| **Consultar** | `GET` | `/api/productos/{id}` | Obtiene el detalle de un producto específico |
-| **Registrar** | `POST` | `/api/productos` | Envía el payload JSON para crear un nuevo registro |
-| **Actualizar** | `PUT` | `/api/productos/{id}` | Envía los datos modificados para actualizar |
-| **Eliminar** | `DELETE`| `/api/productos/{id}` | Elimina el registro por su identificador |
+| Usuario | Contraseña | Rol | Descripción |
+|---------|------------|-----|-------------|
+| `admin` | `admin123` | Administrador | Acceso total con privilegios administrativos |
+| `empleado` | `empleado123` | Empleado | Acceso estándar a operaciones de inventario |
+| `profesor` | `uceva2026` | Auditor / Docente | Cuenta institucional de prueba |
